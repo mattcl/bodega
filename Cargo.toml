@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "bodega",
+    "bodega-macros",
+    # https://github.com/rust-lang/cargo/issues/7467#issuecomment-1162137096
+    "examples/*",
+]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+homepage = "https://github.com/mattcl/bodega"
+repository = "https://github.com/mattcl/bodega"
+authors = [
+    "Matt Chun-Lum <matt@questionable.engineering>"
+]
+readme = "README.md"
+categories = ["database"]
+description = "A small, relatively simple object store implementation and helpers."
+
+[workspace.dependencies]
+chrono = { version = "0.4.28", default-features = false, features = ["clock", "serde"] }
+derive_builder = "0.20.0"
+sea-query = { version = "0.32", features = ["derive", "attr", "with-chrono", "postgres-types", "postgres-array", "with-json", "with-uuid"] }
+sea-query-binder = { version = "0.7", features = ["sqlx-postgres", "with-uuid", "with-chrono", "postgres-array", "with-json"] }
+serde = { version = "1", features = ["derive"] }
+sqlx = { version = "0.8", features = ["chrono", "runtime-tokio", "tls-rustls", "postgres", "uuid", "time"] }
+thiserror = "2"
+uuid = { version = "1.11", features = ["serde", "v4", "v7"] }
+
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"

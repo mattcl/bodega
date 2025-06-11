@@ -1,0 +1,2 @@
+# annoying that this can't be set from the cargo.toml, and we can't set the lints from the clippy.toml as easily
+allow-unwrap-in-tests = true
