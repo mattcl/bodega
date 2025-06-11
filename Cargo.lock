@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "bodega"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bodega-macros",
  "chrono",
@@ -116,7 +116,7 @@ dependencies = [
 
 [[package]]
 name = "bodega-macros"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bodega",
  "chrono",

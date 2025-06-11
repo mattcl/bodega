@@ -159,7 +159,7 @@ pub use bodega_macros::Update;
 ///   from the following:
 ///   * `create = ...`, `get`, `list`, `list_paginated = ...`, `update = ...`, `delete`, `count`.
 ///
-/// Specific configuration for `#[db_bmc(methods(...))]
+/// Specific configuration for `#[db_bmc(methods(...))]`
 ///
 /// * `create = ...` Generate a `create` method on the controller accepting an
 ///   instance of the specified type that implements [`Insert`]. Returns the

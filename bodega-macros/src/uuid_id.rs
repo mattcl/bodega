@@ -18,11 +18,16 @@ pub(crate) struct UuidArgs {
 
     #[darling(default)]
     skip_refs: bool,
+
+    #[darling(default)]
+    skip_store: bool,
 }
 
 pub fn uuid_id_impl(args: UuidArgs, mut input: ItemStruct) -> syn::Result<TokenStream> {
-    input.attrs.push(parse_quote!(#[derive(sqlx::Type)]));
-    input.attrs.push(parse_quote!(#[sqlx(transparent)]));
+    if !args.skip_store {
+        input.attrs.push(parse_quote!(#[derive(sqlx::Type)]));
+        input.attrs.push(parse_quote!(#[sqlx(transparent)]));
+    }
 
     match &input.fields {
         syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
@@ -52,12 +57,14 @@ pub fn uuid_id_impl(args: UuidArgs, mut input: ItemStruct) -> syn::Result<TokenS
                 out.extend(display(ident, &impl_generics, &ty_generics, where_clause)?);
             }
 
-            out.extend(query_impls(
-                ident,
-                &impl_generics,
-                &ty_generics,
-                where_clause,
-            )?);
+            if !args.skip_store {
+                out.extend(query_impls(
+                    ident,
+                    &impl_generics,
+                    &ty_generics,
+                    where_clause,
+                )?);
+            }
 
             Ok(out.into())
         }
