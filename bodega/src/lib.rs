@@ -1,4 +1,4 @@
-#![doc = include_str!("../../README.md")]
+#![doc = include_str!(concat!("../", std::env!("CARGO_PKG_README")))]
 mod base;
 mod error;
 mod model_manger;
