@@ -95,17 +95,14 @@ impl<'a> ControllerInfo<'a> {
             .ok_or_else(|| syn::Error::new(input.span(), "DbBmc: Failed to derive model name from model and was not provided a model_name as an argument."))?;
 
         // stupid way to auto-compute this
-        let table_name = {
-            let n = args
-                .table_name
-                .clone()
-                .unwrap_or_else(|| model_name.clone());
-            if n.ends_with('s') {
-                n
+        let table_name = args.table_name.clone().unwrap_or_else(|| {
+            let raw = model_name.clone();
+            if raw.ends_with('s') {
+                raw
             } else {
-                format!("{}s", n)
+                format!("{}s", raw)
             }
-        };
+        });
 
         let iden_enum = args.iden_enum.clone().unwrap_or_else(|| {
             let mut computed = args.model.clone();
