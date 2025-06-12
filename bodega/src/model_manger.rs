@@ -46,8 +46,12 @@ impl DbModelManager {
         Ok(Transaction(raw))
     }
 
-    /// Get a reference to the db pool. Can only be used within this crate.
-    pub(crate) fn db(&self) -> &Db {
+    /// Get a reference to the db pool.
+    ///
+    /// We would prefer not to expose this but because we're providing this type
+    /// in this crate, we have to expose it. Care should be used to not use this
+    /// outside of running migrations, perhaps.
+    pub fn db(&self) -> &Db {
         &self.db
     }
 }
