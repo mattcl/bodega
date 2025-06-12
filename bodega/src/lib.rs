@@ -155,6 +155,10 @@ pub use bodega_macros::Update;
 /// * `id_iden = ...` *Optional.* Override the derived `Iden` enum for this `model`.
 /// * `error = ...` *Optional.* Return this error type instead of [`crate::Error`].
 ///   The type passed must implement `From<bodega::Error>`.
+/// * `private_methods` *Optional.* Generate methods as private methods, prefixed
+///   with an underscore `_`. Useful if you still need to wrap the generated
+///   method in something like an internal transaction or some sort of authz.
+///   The type passed must implement `From<bodega::Error>`.
 /// * `methods(...)` *Optional.* A comma-separated list of methods to implement
 ///   from the following:
 ///   * `create = ...`, `get`, `list`, `list_paginated = ...`, `update = ...`, `delete`, `count`.

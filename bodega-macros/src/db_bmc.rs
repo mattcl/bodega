@@ -2,7 +2,7 @@ use darling::{FromDeriveInput, FromMeta};
 use heck::ToSnakeCase;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_quote, spanned::Spanned, DeriveInput, Ident, Path};
+use syn::{parse_quote, spanned::Spanned, DeriveInput, Ident, Path, Visibility};
 
 #[derive(Debug, Clone, FromDeriveInput)]
 #[darling(attributes(db_bmc), supports(any))]
@@ -25,6 +25,9 @@ pub(crate) struct BmcArgs {
 
     #[darling(default)]
     error: Option<Path>,
+
+    #[darling(default)]
+    private_methods: bool,
 
     #[darling(default)]
     methods: MethodArgs,
@@ -166,6 +169,22 @@ impl<'a> ControllerInfo<'a> {
         })
     }
 
+    fn fn_info(&self, basename: &'static str) -> (Option<Visibility>, Ident) {
+        if self.args.private_methods {
+            (
+                None,
+                Ident::new(&format!("_{}", basename), self.args.methods.create.span()),
+            )
+        } else {
+            (
+                Some(Visibility::Public(syn::token::Pub {
+                    span: self.input.span(),
+                })),
+                Ident::new(basename, self.args.methods.create.span()),
+            )
+        }
+    }
+
     fn crud_methods(&self) -> syn::Result<proc_macro2::TokenStream> {
         let name = &self.input.ident;
         let model_type = &self.args.model;
@@ -181,11 +200,13 @@ impl<'a> ControllerInfo<'a> {
         let mut out = quote! {};
 
         if let Some(create_type) = self.args.methods.create.as_ref() {
+            let (vis, fn_name) = self.fn_info("create");
+
             out.extend(quote! {
                 #[automatically_derived]
                 impl #impl_generics #name #ty_generics #where_clause {
                     /// Create a row in the database, returning the created row.
-                    pub async fn create<X>(executor: &mut X, data: #create_type) -> std::result::Result<#model_type, #error>
+                    #vis async fn #fn_name<X>(executor: &mut X, data: #create_type) -> std::result::Result<#model_type, #error>
                     where
                         X: bodega::AsExecutor,
                     {
@@ -198,11 +219,13 @@ impl<'a> ControllerInfo<'a> {
         }
 
         if self.args.methods.get {
+            let (vis, fn_name) = self.fn_info("get");
+
             out.extend(quote! {
                 #[automatically_derived]
                 impl #impl_generics #name #ty_generics #where_clause {
                     /// Fetch a record from the store with the given id
-                    pub async fn get<X>(executor: &mut X, id: &#id_type) -> std::result::Result<#model_type, #error>
+                    #vis async fn #fn_name<X>(executor: &mut X, id: &#id_type) -> std::result::Result<#model_type, #error>
                     where
                         X: bodega::AsExecutor,
                     {
@@ -215,11 +238,13 @@ impl<'a> ControllerInfo<'a> {
         }
 
         if self.args.methods.list {
+            let (vis, fn_name) = self.fn_info("list");
+
             out.extend(quote! {
                 #[automatically_derived]
                 impl #impl_generics #name #ty_generics #where_clause {
                     /// Fetch all rows from the store.
-                    pub async fn list<X>(executor: &mut X) -> std::result::Result<Vec<#model_type>, #error>
+                    #vis async fn #fn_name<X>(executor: &mut X) -> std::result::Result<Vec<#model_type>, #error>
                     where
                         X: bodega::AsExecutor,
                     {
@@ -232,11 +257,13 @@ impl<'a> ControllerInfo<'a> {
         }
 
         if let Some(filters) = self.args.methods.list_paginated.as_ref() {
+            let (vis, fn_name) = self.fn_info("list_paginated");
+
             out.extend(quote! {
                 #[automatically_derived]
                 impl #impl_generics #name #ty_generics #where_clause {
                     /// Fetch all rows from the store.
-                    pub async fn list_paginated<X>(executor: &mut X, filters: &#filters) -> std::result::Result<bodega::Paginated<#model_type>, #error>
+                    #vis async fn #fn_name<X>(executor: &mut X, filters: &#filters) -> std::result::Result<bodega::Paginated<#model_type>, #error>
                     where
                         X: bodega::AsExecutor,
                     {
@@ -249,11 +276,13 @@ impl<'a> ControllerInfo<'a> {
         }
 
         if let Some(update_type) = self.args.methods.update.as_ref() {
+            let (vis, fn_name) = self.fn_info("update");
+
             out.extend(quote! {
                 #[automatically_derived]
                 impl #impl_generics #name #ty_generics #where_clause {
                     /// Create a row in the database, returning the created row.
-                    pub async fn update<X>(executor: &mut X, id: &#id_type, data: #update_type) -> std::result::Result<#model_type, #error>
+                    #vis async fn #fn_name<X>(executor: &mut X, id: &#id_type, data: #update_type) -> std::result::Result<#model_type, #error>
                     where
                         X: bodega::AsExecutor,
                     {
@@ -266,11 +295,13 @@ impl<'a> ControllerInfo<'a> {
         }
 
         if self.args.methods.delete {
+            let (vis, fn_name) = self.fn_info("delete");
+
             out.extend(quote! {
                 #[automatically_derived]
                 impl #impl_generics #name #ty_generics #where_clause {
                     /// Delete the given record from the store.
-                    pub async fn delete<X>(executor: &mut X, id: &#id_type) -> std::result::Result<(), #error>
+                    #vis async fn #fn_name<X>(executor: &mut X, id: &#id_type) -> std::result::Result<(), #error>
                     where
                         X: bodega::AsExecutor,
                     {
@@ -283,11 +314,13 @@ impl<'a> ControllerInfo<'a> {
         }
 
         if self.args.methods.count {
+            let (vis, fn_name) = self.fn_info("count");
+
             out.extend(quote! {
                 #[automatically_derived]
                 impl #impl_generics #name #ty_generics #where_clause {
                     /// Delete the given record from the store.
-                    pub async fn count<X>(executor: &mut X) -> std::result::Result<usize, #error>
+                    #vis async fn #fn_name<X>(executor: &mut X) -> std::result::Result<usize, #error>
                     where
                         X: bodega::AsExecutor,
                     {
