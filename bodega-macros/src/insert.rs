@@ -2,7 +2,7 @@ use darling::{ast, util, FromDeriveInput, FromField};
 use heck::ToUpperCamelCase;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{spanned::Spanned, DeriveInput, Ident, Path, Type};
+use syn::{parse_quote, spanned::Spanned, DeriveInput, Ident, Path, Type};
 
 #[derive(Debug, Clone, FromDeriveInput)]
 #[darling(attributes(insert), supports(struct_named))]
@@ -19,6 +19,8 @@ pub(crate) struct InsertField {
     ty: Type,
     #[darling(default)]
     iden: Option<Path>,
+    #[darling(default)]
+    cust_opt: bool,
 }
 
 pub fn insert_impl(input: &DeriveInput) -> syn::Result<TokenStream> {
@@ -48,7 +50,7 @@ impl<'a> InsertInfo<'a> {
         let (impl_generics, ty_generics, where_clause) = self.input.generics.split_for_impl();
 
         let mut iden_fields = Vec::default();
-        let mut idents: Vec<&Ident> = Vec::default();
+        let mut inserts = Vec::default();
 
         self.args.data.as_ref().map_struct_fields(|field| {
             if let Some(iden) = field.iden.clone() {
@@ -71,7 +73,11 @@ impl<'a> InsertInfo<'a> {
             }
             let ident = field.ident.as_ref().expect("Only named structs supported");
 
-            idents.push(ident);
+            if field.cust_opt {
+                inserts.push(quote! { bodega::CustomOption(self.#ident).into() });
+            } else {
+                inserts.push(quote! { self.#ident.into() });
+            }
         });
 
         Ok(quote! {
@@ -87,7 +93,7 @@ impl<'a> InsertInfo<'a> {
 
                 fn insert_vals(self) -> Vec<sea_query::SimpleExpr> {
                     vec![
-                        #(self.#idents.into()),*
+                        #(#inserts),*
                     ]
                 }
             }

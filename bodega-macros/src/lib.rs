@@ -5,6 +5,7 @@ use syn::parse_macro_input;
 mod db_bmc;
 mod helpers;
 mod insert;
+mod json_value;
 mod select;
 mod store_enum;
 mod update;
@@ -32,6 +33,12 @@ pub fn update(item: TokenStream) -> TokenStream {
 pub fn db_bmc(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as syn::DeriveInput);
     db_bmc::db_bmc_impl(&input).unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+#[proc_macro_derive(JsonValue)]
+pub fn json_value(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as syn::DeriveInput);
+    json_value::json_value_impl(&input).unwrap_or_else(|e| e.to_compile_error().into())
 }
 
 #[proc_macro_attribute]

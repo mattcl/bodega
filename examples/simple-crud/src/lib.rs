@@ -1,5 +1,5 @@
 use bodega::{
-    store_enum, uuid_id, Cursored, CursoredFilter, DbBmc, Filter, Insert, Select, Update,
+    store_enum, uuid_id, Cursored, CursoredFilter, DbBmc, Filter, Insert, JsonValue, Select, Update,
 };
 use chrono::{DateTime, Utc};
 use derive_builder::Builder;
@@ -20,6 +20,12 @@ pub enum Genre {
     Fantasy,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonValue)]
+pub struct Meta {
+    spine_size: u32,
+    book_weight: u32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow, Select)]
 #[sea_query::enum_def]
 pub struct Book {
@@ -29,6 +35,8 @@ pub struct Book {
     author: String,
     genre: Vec<Genre>,
     pages: i64,
+    #[sqlx(json)]
+    meta: Meta,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -38,7 +46,9 @@ pub struct Book {
 pub struct BookCreate {
     title: String,
     author: String,
-    genre: Genre,
+    #[insert(cust_opt)]
+    genre: Option<Genre>,
+    meta: Meta,
     pages: i64,
 }
 
@@ -48,6 +58,7 @@ pub struct BookUpdate {
     title: Option<String>,
     author: Option<String>,
     genre: Option<Genre>,
+    meta: Option<Meta>,
     pages: Option<i64>,
     updated_at: DateTime<Utc>,
 }

@@ -1,11 +1,13 @@
 #![doc = include_str!(concat!("../", std::env!("CARGO_PKG_README")))]
 mod base;
+mod custom_option;
 mod error;
 mod model_manger;
 mod pagination;
 
 pub use base::{count, create, delete, get, list, list_paginated, update};
 pub use base::{DbBmc, Filter, IdType, Insert, Select, Update};
+pub use custom_option::CustomOption;
 pub use error::{Error, Result};
 pub use model_manger::{new_db_pool, AsExecutor, DbModelManager, Transaction};
 pub use pagination::{Cursored, CursoredFilter, Paginated};
@@ -280,6 +282,21 @@ pub use bodega_macros::Update;
 /// assert_eq!(BookBmc::TABLE, "books");
 /// ```
 pub use bodega_macros::DbBmc;
+
+/// Adds conversions from a type to a `serde_json::Value` for use with `sea_query`.
+///
+/// # Examples
+/// ```
+/// use bodega::JsonValue;
+/// use serde::{Deserialize, Serialize};
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonValue)]
+/// pub struct Meta {
+///     spine_size: u32,
+///     book_weight: u32,
+/// }
+/// ```
+pub use bodega_macros::JsonValue;
 
 /// Modifies a newtype in the form of `Foo(Uuid)` to have functionality that
 /// makes it compatible with a store layer.
