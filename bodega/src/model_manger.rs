@@ -38,7 +38,7 @@ impl DbModelManager {
     }
 
     /// Begin a new transaction.
-    pub async fn begin(&self) -> Result<Transaction> {
+    pub async fn begin(&self) -> Result<Transaction<'_>> {
         let mut raw = self.db().begin().await?;
         raw.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;")
             .await?;
@@ -69,7 +69,7 @@ impl From<Db> for DbModelManager {
 pub struct Transaction<'a>(sqlx::Transaction<'a, Postgres>);
 
 impl Transaction<'_> {
-    pub(crate) fn executor(&mut self) -> impl Executor<Database = Postgres> {
+    pub(crate) fn executor(&mut self) -> impl Executor<'_, Database = Postgres> {
         &mut *self.0
     }
 
@@ -101,12 +101,12 @@ pub(crate) mod private {
     use sqlx::{Executor, Postgres};
 
     pub trait ActualExecutor {
-        fn as_executor(&mut self) -> impl Executor<Database = Postgres>;
+        fn as_executor(&mut self) -> impl Executor<'_, Database = Postgres>;
     }
 }
 
 impl private::ActualExecutor for Transaction<'_> {
-    fn as_executor(&mut self) -> impl Executor<Database = Postgres> {
+    fn as_executor(&mut self) -> impl Executor<'_, Database = Postgres> {
         self.executor()
     }
 }
@@ -123,7 +123,7 @@ impl private::ActualExecutor for DbModelManager {
     // the db model manager as the executor, we need a mutable reference,
     // despite nothing actually requiring it to be mutable other than this
     // interface.
-    fn as_executor(&mut self) -> impl Executor<Database = Postgres> {
+    fn as_executor(&mut self) -> impl Executor<'_, Database = Postgres> {
         self.db()
     }
 }

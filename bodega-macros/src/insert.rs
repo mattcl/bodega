@@ -2,7 +2,7 @@ use darling::{ast, util, FromDeriveInput, FromField};
 use heck::ToUpperCamelCase;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_quote, spanned::Spanned, DeriveInput, Ident, Path, Type};
+use syn::{spanned::Spanned, DeriveInput, Ident, Path, Type};
 
 #[derive(Debug, Clone, FromDeriveInput)]
 #[darling(attributes(insert), supports(struct_named))]
