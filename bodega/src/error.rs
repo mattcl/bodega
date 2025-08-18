@@ -1,41 +1,98 @@
+use snafu::Snafu;
+
+use crate::{DbBmcError, DbModelManagerError, OpError};
+
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Snafu)]
 pub enum Error {
-    #[error("Attempted empty update for '{entity}' with id '{id}'")]
+    #[snafu(display("Attempted empty update for '{entity}' with id '{id}'"))]
     EmptyUpdate { entity: &'static str, id: String },
 
-    #[error("Could not find '{entity}' with id '{id}'")]
+    #[snafu(display("Could not find '{entity}' with id '{id}'"))]
     EntityNotFound { entity: &'static str, id: String },
 
-    #[error("Failed to create DB pool: {0}")]
-    FailedToCreateDBPool(String),
+    #[snafu(display("Failed to create DB pool: {message}"))]
+    FailedToCreateDBPool { message: String },
 
-    #[error("Transaction serialization error: {0}")]
-    SerializationError(Box<dyn sqlx::error::DatabaseError>),
+    #[snafu(display("DbBmc error: "))]
+    DbBmc { source: DbBmcError },
 
-    #[error("Transaction retries exceeded: {0}")]
-    TransactionRetriesExceeded(Box<Error>),
+    #[snafu(display("ModelManagr error: "))]
+    ModelManager { source: DbModelManagerError },
 
-    #[error(transparent)]
-    TransformIntError(#[from] std::num::TryFromIntError),
+    #[snafu(display("Transaction serialization error: "))]
+    TransactionSerialization { source: SerializationError },
 
-    #[error(transparent)]
-    Sqlx(sqlx::Error),
+    #[snafu(display("Transaction retries exceeded: "))]
+    TransactionRetriesExceeded { source: Box<Error> },
 
-    #[error(transparent)]
-    SqlxMigrate(#[from] sqlx::migrate::MigrateError),
+    #[snafu(transparent)]
+    SqlxMigrate { source: sqlx::migrate::MigrateError },
+}
+
+impl Error {
+    /// If applicable, returns the name of the constraint that triggered the error.
+    ///
+    /// This is a convenience proxy for the constraint on the underlying [`sqlx::Error`].
+    pub fn constraint(&self) -> Option<&str> {
+        match self {
+            Error::DbBmc {
+                source:
+                    DbBmcError::Operation {
+                        source:
+                            OpError::Sqlx {
+                                source: sqlx::Error::Database(ref e),
+                            },
+                        ..
+                    },
+            } => e.constraint(),
+            Error::ModelManager { source } => match source.source() {
+                sqlx::Error::Database(ref e) => e.constraint(),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Snafu)]
+pub enum SerializationError {
+    #[snafu(transparent)]
+    DbBmc { source: DbBmcError },
+
+    #[snafu(transparent)]
+    ModelManager { source: DbModelManagerError },
 }
 
 // we want to explicitly distinguish serialization errors to make it easier for
 // clients to retry.
-impl From<sqlx::Error> for Error {
-    fn from(value: sqlx::Error) -> Self {
+impl From<DbBmcError> for Error {
+    fn from(value: DbBmcError) -> Self {
         match value {
-            sqlx::Error::Database(e) if e.code() == Some("40001".into()) => {
-                Self::SerializationError(e)
-            }
-            _ => Self::Sqlx(value),
+            DbBmcError::Operation {
+                source:
+                    OpError::Sqlx {
+                        source: sqlx::Error::Database(ref e),
+                    },
+                ..
+            } if e.code() == Some("40001".into()) => Self::TransactionSerialization {
+                source: SerializationError::DbBmc { source: value },
+            },
+            _ => Self::DbBmc { source: value },
+        }
+    }
+}
+
+impl From<DbModelManagerError> for Error {
+    fn from(value: DbModelManagerError) -> Self {
+        match value {
+            DbModelManagerError::TransactionCommit {
+                source: sqlx::Error::Database(ref e),
+            } if e.code() == Some("40001".into()) => Self::TransactionSerialization {
+                source: SerializationError::ModelManager { source: value },
+            },
+            _ => Self::ModelManager { source: value },
         }
     }
 }

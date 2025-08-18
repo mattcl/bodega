@@ -1,3 +1,4 @@
+use snafu::{ResultExt, Snafu};
 use sqlx::{postgres::PgPoolOptions, Executor, Pool, Postgres};
 
 use crate::{Error, Result};
@@ -9,7 +10,36 @@ pub async fn new_db_pool(db_connect_url: &str, max_connections: u32) -> Result<D
         .max_connections(max_connections)
         .connect(db_connect_url)
         .await
-        .map_err(|e| Error::FailedToCreateDBPool(e.to_string()))
+        .map_err(|e| Error::FailedToCreateDBPool {
+            message: e.to_string(),
+        })
+}
+
+#[derive(Debug, Snafu)]
+pub enum DbModelManagerError {
+    #[snafu(display("Error checking DB connectivity: "))]
+    Connectivity { source: sqlx::Error },
+
+    #[snafu(display("Error starting DB transaction: "))]
+    TransactionInit { source: sqlx::Error },
+
+    #[snafu(display("Error committing DB transaction: "))]
+    TransactionCommit { source: sqlx::Error },
+
+    #[snafu(display("Error rolling back DB transaction: "))]
+    TransactionRollback { source: sqlx::Error },
+}
+
+impl DbModelManagerError {
+    /// Convenience method for getting a reference to the underlying [`sqlx::Error`].
+    pub fn source(&self) -> &sqlx::Error {
+        match self {
+            DbModelManagerError::Connectivity { source } => source,
+            DbModelManagerError::TransactionInit { source } => source,
+            DbModelManagerError::TransactionCommit { source } => source,
+            DbModelManagerError::TransactionRollback { source } => source,
+        }
+    }
 }
 
 /// Acts as an interface to a db connection pool that is Clone + Send + Sync.
@@ -33,15 +63,19 @@ impl DbModelManager {
     }
 
     pub async fn check_db_connectivity(&self) -> Result<()> {
-        sqlx::query("SELECT 1").execute(self.db()).await?;
+        sqlx::query("SELECT 1")
+            .execute(self.db())
+            .await
+            .context(ConnectivitySnafu)?;
         Ok(())
     }
 
     /// Begin a new transaction.
     pub async fn begin(&self) -> Result<Transaction<'_>> {
-        let mut raw = self.db().begin().await?;
+        let mut raw = self.db().begin().await.context(TransactionInitSnafu)?;
         raw.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;")
-            .await?;
+            .await
+            .context(TransactionInitSnafu)?;
 
         Ok(Transaction(raw))
     }
@@ -75,12 +109,12 @@ impl Transaction<'_> {
 
     /// Commit the underlying transaction.
     pub async fn commit(self) -> Result<()> {
-        Ok(self.0.commit().await?)
+        Ok(self.0.commit().await.context(TransactionCommitSnafu)?)
     }
 
     /// Roll the underlying transaction back.
     pub async fn rollback(self) -> Result<()> {
-        Ok(self.0.rollback().await?)
+        Ok(self.0.rollback().await.context(TransactionRollbackSnafu)?)
     }
 }
 

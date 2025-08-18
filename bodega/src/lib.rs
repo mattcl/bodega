@@ -5,11 +5,13 @@ mod error;
 mod model_manger;
 mod pagination;
 
-pub use base::{count, create, delete, get, list, list_paginated, update};
+pub use base::{
+    count, create, delete, get, list, list_paginated, update, DbBmcError, DbBmcOp, OpError,
+};
 pub use base::{DbBmc, Filter, IdType, Insert, Select, Update};
 pub use custom_option::CustomOption;
-pub use error::{Error, Result};
-pub use model_manger::{new_db_pool, AsExecutor, DbModelManager, Transaction};
+pub use error::{Error, Result, SerializationError};
+pub use model_manger::{new_db_pool, AsExecutor, DbModelManager, DbModelManagerError, Transaction};
 pub use pagination::{Cursored, CursoredFilter, Paginated};
 
 // macros
