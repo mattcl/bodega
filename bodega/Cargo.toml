@@ -1,6 +1,6 @@
 [package]
 name = "bodega"
-version = "0.7.0"
+version = "0.7.1"
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
@@ -20,7 +20,7 @@ snafu = { workspace = true }
 sqlx = { workspace = true }
 uuid = { workspace = true }
 
-bodega-macros = { version = "0.7.0", path = "../bodega-macros" }
+bodega-macros = { version = "0.7.1", path = "../bodega-macros" }
 
 [dev-dependencies]
 strum = { version = "0.26", features = ["derive"] }

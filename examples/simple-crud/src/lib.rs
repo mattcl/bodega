@@ -13,7 +13,7 @@ use uuid::Uuid;
 pub struct BookId(Uuid);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, AsRefStr)]
-#[store_enum]
+#[store_enum(rename_all = "snake_case")]
 pub enum Genre {
     Mystery,
     ScienceFiction,

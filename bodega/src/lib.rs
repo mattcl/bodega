@@ -331,5 +331,13 @@ pub use bodega_macros::uuid_id;
 ///     ScienceFiction,
 ///     Fantasy,
 /// }
+///
+/// // we can also proxy a rename_all instruction to the underlying sqlx::Type
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, AsRefStr)]
+/// #[store_enum(rename_all = "snake_case")]
+/// pub enum Mood {
+///     Good,
+///     Bad,
+/// }
 /// ```
 pub use bodega_macros::store_enum;

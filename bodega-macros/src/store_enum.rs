@@ -8,6 +8,9 @@ use syn::{parse_quote, ItemEnum};
 pub(crate) struct StoreEnumArgs {
     #[darling(default)]
     pg_type_name: Option<String>,
+
+    #[darling(default)]
+    rename_all: Option<String>,
 }
 
 pub fn store_enum_impl(args: StoreEnumArgs, mut input: ItemEnum) -> syn::Result<TokenStream> {
@@ -20,6 +23,12 @@ pub fn store_enum_impl(args: StoreEnumArgs, mut input: ItemEnum) -> syn::Result<
     input
         .attrs
         .push(parse_quote!(#[sqlx(type_name = #pg_type)]));
+
+    if let Some(ref casing) = args.rename_all {
+        input
+            .attrs
+            .push(parse_quote!(#[sqlx(rename_all = #casing)]));
+    }
 
     let mut out = input.to_token_stream();
 
